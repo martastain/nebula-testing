@@ -1,0 +1,27 @@
+version: "3.3"
+services:
+
+  redis:
+    image: redis
+    volumes:
+        - ./data/var/redis:/data
+
+  elastic:
+    image: elasticsearch:7.9.3
+    volumes:
+        - ./data/var/elastic:/usr/share/elasticsearch/data
+    environment:
+        - discovery.type=single-node
+
+  backend:
+    build: ./server
+    command: ./server.py
+    volumes:
+        - ./server:/nebula
+        - ./data:/data
+    ports:
+        - "8200:8200"
+    depends_on:
+        - redis
+        - elastic
+

@@ -1,15 +1,18 @@
-__all__ = ["search"]
+__all__ = ["api_browse"]
 
 import asyncio
 import elasticsearch
 
-from .common import *
+from ..common import *
 
-class Search():
+from .responses import *
+
+class Elastic():
     def __init__(self):
         self.es = None
 
     async def query(self, **kwargs):
+        """Run elasticsearch "search" query with given arguments"""
         if not self.es:
             self.es = elasticsearch.AsyncElasticsearch(config["elastic"])
         response = await self.es.search(**kwargs)
@@ -23,4 +26,7 @@ class Search():
         if self.es:
             asyncio.shield(self.close())
 
-search = Search()
+
+elastic = Elastic()
+async def api_browse(**kwargs):
+     return await elastic.query(**kwargs)

@@ -3,7 +3,7 @@ class Config(dict):
         super(Config, self).__init__(self)
         self.update({
             "redis" : "redis://redis",
-            "elastic" : ["elastic"]
+            "elastic" : ["elastic"],
         })
 
 config = Config()

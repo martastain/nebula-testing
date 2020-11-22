@@ -29,7 +29,7 @@ async def api_request(request, method):
         return response(400, "No such method")
 
     result = await method(**kwargs)
-    return response(**result)
+    return result
 
 
 if __name__ == "__main__":

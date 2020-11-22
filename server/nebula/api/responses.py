@@ -10,7 +10,7 @@ DEFAULT_HEADERS = {
         "Access-Control-Allow-Methods" : "*"
     }
 
-def response(status_code=200, message=None, **kwargs):
+def response(status_code=200, message=None, **kwargs) -> sanic.response.json:
     """Create a raw data API response
 
     Args:
@@ -35,7 +35,7 @@ def response(status_code=200, message=None, **kwargs):
                  }
          )
 
-def raw_response(mime="application/octet-stream", data=b""):
+def raw_response(mime="application/octet-stream", data=b"") -> sanic.response.raw:
     """Create a raw data API response
 
     Args:

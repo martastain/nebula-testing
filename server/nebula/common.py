@@ -4,6 +4,49 @@ class Config(dict):
         self.update({
             "redis" : "redis://redis",
             "elastic" : ["elastic"],
+            "meta_types": {}
         })
 
 config = Config()
+
+
+
+#
+# Default values (development only)
+#
+
+config["views"] = {
+    1 : {
+            "title" : "Main",
+            "fields" : ["id/main", "title", "subtitle", "id_folder"],
+            "search" : {
+                "filter" : [
+                        {"terms" : {"id_folder" : [1,2]}},
+                    ]
+                }
+    },
+    2 : {
+            "title" : "Fill",
+            "fields" : ["id/main", "title", "id_folder"],
+            "search" : {
+                "filter" : [
+                        {"terms" : {"id_folder" : [5,6,7,8]}},
+                        {"match" : {"status" : 1}}
+                    ]
+                }
+    },
+    3 : {
+            "title" : "Created last year",
+            "fields" : ["id/main", "title", "id_folder"],
+            "search" : {
+                "filter" : [
+                        {"match" : {"status" : 1}}
+                    ]
+                }
+    },
+}
+
+
+
+config["meta_types"] = {
+}

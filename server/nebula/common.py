@@ -1,3 +1,5 @@
+from .constants import *
+
 class Config(dict):
     def __init__(self):
         super(Config, self).__init__(self)
@@ -37,10 +39,11 @@ config["views"] = {
     },
     3 : {
             "title" : "Created last year",
-            "fields" : ["id/main", "title", "id_folder"],
+            "fields" : ["id/main", "title", "id_folder", "ctime"],
             "search" : {
                 "filter" : [
-                        {"match" : {"status" : 1}}
+                        {"match" : {"status" : 1}},
+                        {"range" : {"ctime" : {"lte" : "now", "gte" : "now-1y/d"}}}
                     ]
                 }
     },

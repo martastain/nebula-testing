@@ -6,12 +6,12 @@ DEFAULT_META_TYPES = {
 "id":                     ("o", 1, 0, INTEGER,     {}),
 "ctime":                  ("o", 1, 0, DATETIME,    {}),              # Creation time
 "mtime":                  ("o", 1, 0, DATETIME,    {}),              # Last modified time
-"mark_in":                ("e", 0, 0, TIMECODE,    {}),
-"mark_out":               ("e", 0, 0, TIMECODE,    {}),
+"mark_in":                ("e", 1, 0, TIMECODE,    {}),
+"mark_out":               ("e", 1, 0, TIMECODE,    {}),
 "logo":                   ("e", 1, 0, SELECT,      {"cs" : "urn:site:logo"}),
 "media_type":             ("o", 1, 0, INTEGER,     {}),
 "content_type":           ("o", 1, 0, INTEGER,     {}),
-"status":                 ("o", 0, 0, INTEGER,     {"default" : 1}),              # OFFLINE, ONLINE, CREATING, TRASHED, ARCHIVED
+"status":                 ("o", 1, 0, INTEGER,     {"default" : 1}),              # OFFLINE, ONLINE, CREATING, TRASHED, ARCHIVED
 "id_storage":             ("o", 1, 0, INTEGER,     {}),
 "id_folder":              ("m", 1, 0, INTEGER,     {}),
 "path":                   ("o", 1, 1, STRING,      {}),
@@ -249,8 +249,8 @@ for key in DEFAULT_META_TYPES:
     d = DEFAULT_META_TYPES[key]
     config["meta_types"][key] = {
         "ns" : d[0],
-        "idx" : d[1],
-        "ft" : d[2],
+        "index" : d[1],
+        "fulltext" : d[2] if d[1] else 0,
         "class" : d[3],
     **d[4]}
 

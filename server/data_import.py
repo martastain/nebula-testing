@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from nebula.objects import safe_get_asset
 import sys
 import json
 import halo
@@ -9,7 +8,7 @@ import aioredis
 from nebula.elastic import elastic
 from nebula.constants.meta_classes import *
 from nebula.metadata import meta_types
-from nebula.objects import safe_get_asset
+from nebula.objects import asset_factory
 
 print("\n")
 
@@ -30,18 +29,18 @@ es_settings = {
 
 
 CLASS_TO_ES_TYPE = {
-    STRING : "text",
-    TEXT : "text",
-    INTEGER : "integer",
-    NUMERIC : "float",
-    BOOLEAN : "boolean",
-    DATETIME : "date",
-    TIMECODE : "float",
-    OBJECT : "object",
-    FRACTION : "float",
-    SELECT : "text",
-    LIST : "text",
-    COLOR : "integer",
+    STRING :   {"type": "text"},
+    TEXT :     {"type": "text"},
+    INTEGER :  {"type": "long"},
+    NUMERIC :  {"type": "float"},
+    BOOLEAN :  {"type": "boolean"},
+    DATETIME : {"type": "date", "format" : "epoch_second"},
+    TIMECODE : {"type": "float"},
+    OBJECT :   {"type": "object"},
+    FRACTION : {"type": "float"},
+    SELECT :   {"type": "text"},
+    LIST :     {"type": "text"},
+    COLOR :    {"type": "integer"},
 }
 
 
@@ -52,9 +51,10 @@ async def prepare():
     properties = {}
     for key in meta_types.keys():
         meta_type = meta_types[key]
-        properties[key] = {
-            "type": CLASS_TO_ES_TYPE[meta_type["class"]]
-        }
+        if not meta_type["index"]:
+            continue
+        properties[key] = CLASS_TO_ES_TYPE[meta_type["class"]]
+        
 
     spinner.text = "Deleting old index"
     await elastic.es.indices.delete(index="assets", ignore=[404])
@@ -64,12 +64,11 @@ async def prepare():
         index="assets", 
         body={
             "settings" : es_settings,
-            "mapping" : {
+            "mappings" : {
                 "properties" : properties
             }
         }
     )
-
     spinner.succeed(text="Elastic search configured")
 
 
@@ -82,16 +81,10 @@ spinner = halo.Halo(text="Loading data...", spinner="dots")
 spinner.start()
 data = json.load(open("/data/import/assets.json"))
 spinner.succeed("Data loaded")
-for meta in data:
-    safe_get_asset(**meta)
-
-
-sys.exit(0)
 
 
 async def get_redis():
     return await aioredis.create_redis_pool('redis://redis')
-
 
 
 async def store():
@@ -103,12 +96,11 @@ async def store():
         aid = meta["id"]
         spinner.text = "Inserting asset {} of {} (ID {}) ".format(i, total, aid)
 
-        for key in ["aired", "audio_tracks"]:
-            if key in meta:
-                del(meta[key])
+        asset = asset_factory(meta)
 
-        await es.index(index='assets', id=aid,body=meta)
-        await redis.set("asset" + str(aid), json.dumps(meta))
+        await elastic.es.index(index='assets', id=aid, body=asset.meta)
+        await redis.set("asset" + str(aid), json.dumps(asset.meta))
+
     redis.close()
     await redis.wait_closed()
     spinner.succeed("Inserted {} assets".format(total))
@@ -146,15 +138,14 @@ async def validate_records():
     spinner.succeed("Validated {} assets".format(total))
 
 
-#asyncio.run(prepare())
-#asyncio.run(store())
-#asyncio.run(validate_records())
 
 
 loop = asyncio.get_event_loop()
 try:
     elastic.connect()
     loop.run_until_complete(prepare())
+    loop.run_until_complete(store())
+#asyncio.run(validate_records())
     loop.run_until_complete(elastic.close())
 finally:
     loop.close()

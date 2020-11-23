@@ -5,6 +5,7 @@ import pprint
 from ..common import config
 from ..metadata import meta_types
 from ..elastic import elastic, QueryBuilder
+from ..objects import Asset
 
 from .responses import response
 
@@ -16,7 +17,7 @@ class BrowserHelper():
     def load_fulltext_fields(self):
         self._fulltext_fields = []
         for key in config["meta_types"]:
-            ft_priority = config["meta_types"][key].get("ft")
+            ft_priority = config["meta_types"][key].get("fulltext")
             if not ft_priority:
                 continue
             self._fulltext_fields.append(f"{key}^{ft_priority}")
@@ -28,8 +29,6 @@ class BrowserHelper():
         return self._fulltext_fields
 
 browser_helper = BrowserHelper()
-print(browser_helper.fulltext_fields)
-
 
 
 async def api_browse(**kwargs):
@@ -83,8 +82,9 @@ async def api_browse(**kwargs):
             }
         }
 
+
     data = await elastic.search(**searchconfig)
-    #pprint.pprint(data)
+    pprint.pprint(data)
     hits = data["hits"]["hits"]
     max_score = data["hits"]["max_score"]
     if not max_score:
@@ -98,13 +98,17 @@ async def api_browse(**kwargs):
     data = []
     for hit in hits:
         row = {}
+        asset = Asset(**hit["_source"])
+        
+
         for key in result_keys:
             if key.startswith("_"):
                 continue
-            row[key] = hit["_source"].get(key)
+            row[key] = asset.show(key, mode="listing") 
 
-        row["_id"] = hit["_source"]["id"]
-        status = hit["_source"]["status"]
+
+        row["_id"] = asset["id"]
+        status = asset["status"]
 
         if status == 0:
             row["_class"] = "item-offline"
@@ -119,7 +123,6 @@ async def api_browse(**kwargs):
             row["_score"] = "{:.01f}%".format(hit["_score"]/max_score*100)
         data.append(row)
 
-
     result = {
         "id_view" : id_view,
         "count" : count,
@@ -129,9 +132,10 @@ async def api_browse(**kwargs):
     if "keyinfo" in kwargs:
         keyinfo = []
         for key in result_keys:
+
             v = {
                 "key" : key,
-                "display" : key.capitalize(),
+                "display" : meta_types[key].get_alias("en"),
                 "class" : "" if key in ["title", "subtitle"] else "min"
             }
             keyinfo.append(v)

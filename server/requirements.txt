@@ -3,3 +3,4 @@ aioredis
 elasticsearch[async]>=7.8.0
 halo
 requests
+nxtools

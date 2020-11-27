@@ -1,8 +1,9 @@
 __all__ = ["meta_types"]
 
 from ..common import *
+
 from .validators import class_validators
-from .formaters import class_formaters
+from .formatters import class_formatters
 from .defaults import *
 
 default_type = {
@@ -38,9 +39,11 @@ class MetaType():
         return self.data[key] 
 
     def get_default(self):
+        """Returns default value of the MetaType"""
         return self.data.get("default", CLASS_DEFAULTS[self["class"]])
 
     def get_alias(self, language="en"):
+        """Returns an alias or a translation of the MetaType name in the given language"""
         for alias in [
             self.data["alias"].get(language),
             self.data["alias"].get("en"),
@@ -50,7 +53,8 @@ class MetaType():
                 return alias
 
     def show(self, value, object=False, mode=False, **kwargs):
-        return class_formaters[self["class"]](
+        """Returns a formatted representation of the given value"""
+        return class_formatters[self["class"]](
             object, 
             self["name"], 
             value,

@@ -18,9 +18,9 @@ class QueryBuilder():
         for m in data.get("must", []):
             self.must(m)
         for s in data.get("should", []):
-            self.should(m)
+            self.should(s)
         for n in data.get("must_not", []):
-            self.must_not(m)
+            self.must_not(n)
 
     def must(self, cond):
         self.e_must.append(cond)
@@ -48,27 +48,40 @@ class QueryBuilder():
             return {"match_all" : {}}
         return {"bool" : r}
 
-class Elastic():
-    def __init__(self):
-        self.es = None
-    
-    def connect(self):
-        self.es = elasticsearch.AsyncElasticsearch(config["elastic"])
 
-    async def search(self, **kwargs):
-        """Run elasticsearch "search" query with given arguments"""
+class Elastic():
+    def __init__(self, use_async=False):
+        logging.info("Starting elastic. Async", use_async)
+        self.use_async = use_async
+        self.es = None
+
+    def connect(self):
+        if self.use_async:
+            self.es = elasticsearch.AsyncElasticsearch(config["elastic"])
+        else:
+            self.es = elasticsearch.Elasticsearch(config["elastic"])
+
+    def __getattr__(self, attr):
         if not self.es:
             self.connect()
-        response = await self.es.search(**kwargs)
-        return response
+        return getattr(self.es, attr)
+        
 
-    async def close(self):
-        await self.es.close()
-        self.es = None
+    async def async_close(self):
+        if self.es:
+            await self.es.close()
+            self.es = None
 
     def __del__(self):
         if self.es:
-            asyncio.shield(self.close())
+            if self.use_async:
+                asyncio.shield(self.async_close())
+            else:
+                self.es.close()
 
 
-elastic = Elastic()
+
+
+
+
+elastic = Elastic(config.get("async"))

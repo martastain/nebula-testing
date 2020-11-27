@@ -2,7 +2,7 @@ __all__ = ["api_browse"]
 
 import pprint
 
-from ..common import config
+from ..common import *
 from ..metadata import meta_types
 from ..elastic import elastic, QueryBuilder
 from ..objects import Asset
@@ -76,15 +76,14 @@ async def api_browse(**kwargs):
     searchconfig = {
         "index" : "assets",
         "body" : {
-                "query": qb.build(),
-                "size" : records_per_page,
-                "from" : (page-1)*records_per_page
-            }
+            "query": qb.build(),
+            "size" : records_per_page,
+            "from" : (page-1)*records_per_page
         }
+    }
 
 
     data = await elastic.search(**searchconfig)
-    pprint.pprint(data)
     hits = data["hits"]["hits"]
     max_score = data["hits"]["max_score"]
     if not max_score:
@@ -98,7 +97,7 @@ async def api_browse(**kwargs):
     data = []
     for hit in hits:
         row = {}
-        asset = Asset(**hit["_source"])
+        asset = Asset(meta=hit["_source"])
         
 
         for key in result_keys:
@@ -108,8 +107,9 @@ async def api_browse(**kwargs):
 
 
         row["_id"] = asset["id"]
-        status = asset["status"]
 
+        #TODO: move this to metadata (record format?)
+        status = asset["status"]
         if status == 0:
             row["_class"] = "item-offline"
         elif status == 3:
@@ -118,6 +118,7 @@ async def api_browse(**kwargs):
             row["_class"] = "item-archived"
         else:
             row["_class"] = ""
+
 
         if max_score:
             row["_score"] = "{:.01f}%".format(hit["_score"]/max_score*100)
@@ -132,7 +133,6 @@ async def api_browse(**kwargs):
     if "keyinfo" in kwargs:
         keyinfo = []
         for key in result_keys:
-
             v = {
                 "key" : key,
                 "display" : meta_types[key].get_alias("en"),

@@ -2,6 +2,11 @@
 
 import sanic
 
+from nebula.common import *
+
+logging.info("Setting ASYNC")
+config["async"] = True
+
 from nebula.api import API
 from nebula.api.responses import response, SERVER_NAME
 

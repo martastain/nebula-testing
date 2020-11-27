@@ -1,3 +1,8 @@
+import os
+import sys
+
+from nxtools import *
+
 from .constants import *
 
 class Config(dict):
@@ -9,8 +14,8 @@ class Config(dict):
             "meta_types": {}
         })
 
-config = Config()
 
+config = Config()
 
 
 #
@@ -47,9 +52,4 @@ config["views"] = {
                     ]
                 }
     },
-}
-
-
-
-config["meta_types"] = {
 }

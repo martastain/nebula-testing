@@ -7,40 +7,66 @@ TODO:
 
 import json
 import asyncio
-import aioredis
 
 from .common import *
 
-
-def require_redis(func):
-    async def redis_decorator(self, *args, **kwargs):
-        print ("Connecting to redis")
-        if self.redis is None:
-            self.redis = await aioredis.create_redis_pool(self.redis_url)
-        return await func(self, *args, **kwargs)
-    return redis_decorator
-
+if config.get("async"):
+    import aioredis
+else:
+    import redis
 
 class Cache():
-    def __init__(self):
+    def __init__(self, use_async=False):
+        logging.info("Starting cache. Async", use_async)
+        self.use_async = use_async
         self.redis_url = config["redis"]
         self.redis = None
 
-    @require_redis
-    async def get(self, namespace, key):
+    def __getattr__(self, attr):
+        if self.use_async:
+            return getattr(self, "async_"+attr)
+        return getattr(self, "sync_"+attr)
+
+
+    def sync_get(self, namespace, id):
+        if not self.redis:
+            pool = redis.ConnectionPool.from_url(config["redis"])
+            self.redis = redis.Redis(connection_pool=pool) 
+        key = f"{namespace}-{id}"
+        value = self.redis.get(key)
+        return json.loads(value)
+
+    def sync_set(self, namespace, id, value):
+        if not self.redis:
+            pool = redis.ConnectionPool.from_url(config["redis"])
+            self.redis = redis.Redis(connection_pool=pool) 
+        key = f"{namespace}-{id}"
+        self.redis.set(key, json.dumps(value))
+
+
+    async def async_get(self, namespace, id):
+        if not self.redis:
+            self.redis = await aioredis.create_redis_pool(self.redis_url)
         key = f"{namespace}-{id}"
         value = await self.redis.get(key)
-        return json.load(value)
+        return json.loads(value)
 
-    @require_redis
-    async def set(self, namespace, key, value):
+    async def async_set(self, namespace, id, value):
+        if not self.redis:
+            self.redis = await aioredis.create_redis_pool(self.redis_url)
         key = f"{namespace}-{id}"
         await self.redis.set(key, json.dumps(value))
 
-    def __del__(self):
+    async def async_close(self):
         if self.redis:
+            await self.redis.close()
+            await self.redis.wait_closed()
+
+    def __del__(self):
+        if self.use_async:
+            asyncio.shield(self.async_close())
+        else:
             self.redis.close()
-            asyncio.shield(self.redis.wait_closed())
 
 
-cache = Cache()
+cache = Cache(config.get("async"))

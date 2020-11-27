@@ -5,4 +5,4 @@ import pprint
 from nebula.common import config
 from nebula.metadata import *
 
-pprint.pprint(config["meta_types"])
+#pprint.pprint(config["meta_types"])

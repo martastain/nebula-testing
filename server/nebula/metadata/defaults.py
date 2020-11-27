@@ -1,5 +1,4 @@
-from ..common import config
-from ..constants import *
+from ..common import *
 
 DEFAULT_META_TYPES = {
 # KEY                      "o", I  F  CLASS        SETTINGS
